@@ -1,5 +1,8 @@
 package walking;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.CopyOption;
 import java.nio.file.FileSystems;
@@ -10,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Arrays;
 
 import exif.exif.NewName;
 import exif.exif.Rename;
@@ -17,7 +21,7 @@ import exif.exif.Rename;
 public class Walk {
 
 	public static void main(String[] args) {
-		Path homeFolder = Paths.get("_/home/autor/Desktop/quai H/soletanche/DCIM");
+		Path homeFolder = Paths.get("/mnt/nfs_nas/SATELLITE/SETE QUAI H/TIMELAPSES/LAFARGE/2014-11-24__");
 		FileVisitor<Path> fileVisitor = new FileSizeVisitor(new Long(50));
 		try {
 			Files.walkFileTree(homeFolder, fileVisitor);
@@ -28,6 +32,12 @@ public class Walk {
   
 	
 	static class FileSizeVisitor implements FileVisitor<Path> {
+		
+		File file;
+		File file_o;
+		
+		FileInputStream fin;
+		FileOutputStream fop;
 
 		private Long size;
 
@@ -56,8 +66,55 @@ public class Walk {
 				System.out.println("File bigger than " + this.size + "KB  found: "
 						+ path);
 			}*/
+			
+			
 			if(path.toString().toLowerCase().endsWith(".jpg")){
-			    copier(path);
+				
+				file = path.toFile();
+				fin = new FileInputStream(file);
+				
+				byte [] mille = new byte[(int) (file.length() - 8)];
+			
+				byte [] quatre = new byte[4];
+				fin.read(quatre);
+
+				byte [] bon_quatre = new byte [4];
+				bon_quatre[0] = (byte)0xFF;
+				bon_quatre[1] = (byte)0xD8;
+				bon_quatre[2] = (byte)0xFF;
+				bon_quatre[3] = (byte)0xE1;
+				
+//				System.out.println(String.format("%02X_%02X_%02X_%02X   %02X_%02X_%02X_%02X", bon_quatre[0],
+//						                                                                      bon_quatre[1],
+//						                                                                      bon_quatre[2],
+//						                                                                      bon_quatre[3],
+//						                                                                      quatre[0],
+//						                                                                      quatre[1],
+//						                                                                      quatre[2],
+//						                                                                      quatre[3]));
+
+
+				if (! Arrays.equals(bon_quatre, quatre)){
+					
+					System.out.println(path + " ___err___");
+					
+					file_o = new File("/home/autor/Desktop/Nouveau dossier/", file.getName());
+					fop = new FileOutputStream(file_o);
+
+				    fin.skip(4);
+				    
+				    fin.read(mille);
+				    fop.write(mille);
+				    
+				    fop.flush();
+				    fop.close();
+
+				    copier(file_o.toPath());
+				}else{
+					System.out.println(path.toString().toLowerCase());
+				    copier(path);
+				}
+
 			}
 			
 
@@ -87,7 +144,7 @@ public class Walk {
 			return FileVisitResult.CONTINUE;
 		}
 		
-		String base = "/run/media/autor/QUAI_H/SOLETANCHE/2015-02-10";
+		String base = "/mnt/nfs_nas/SATELLITE/SETE QUAI H/TIMELAPSES/LAFARGE/RENOMME";
 		
 		void copier (Path p){
 			String ps = NewName.newName(p.toString());
